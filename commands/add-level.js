@@ -58,7 +58,7 @@ module.exports = {
                 let embed = new Discord.MessageEmbed()
                     .setTitle(`Success!`)
                     .setDescription(`Successfully added ${levelArgs} level to ${user.toString()}!`)
-                    .setColor("RANDOM");
+                    .setColor("#2E294E");
 
                 score.totalXP += newTotalXP * 2 * 250 + 250
                 client.setScore.run(score)

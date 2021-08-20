@@ -65,12 +65,12 @@ module.exports = {
             .setStatus(interaction.guild.members.cache.find(member => member.id == interaction.options.getUser("user").id).presence.status, true, 1)
             .setCurrentXP(xpInfo)
             .setRequiredXP(nextXP)
-            .setProgressBar("#5AC0DE", "COLOR")
+            .setProgressBar("#2E294E", "COLOR")
             .setUsername(user.username)
             .setDiscriminator(user.discriminator)
             .setRank(ranking)
             .setLevel(levelInfo)
-            .setLevelColor("#5AC0DE")
+            .setLevelColor("#2E294E")
             .renderEmojis(true)
             .setBackground(bgType, cardBg);
 

@@ -10,8 +10,8 @@ const client = new Discord.Client({
 });
 client.commands = new Discord.Collection();
 
-const SQLite = require("better-sqlite3")
-const sql = new SQLite('./mainDB.sqlite')
+const Quick.db = require("quick.db")
+const sql = new SQLite('./mainDB')
 const { join } = require("path")
 const fs = require("fs");
 const { REST } = require('@discordjs/rest');
@@ -53,56 +53,56 @@ const rest = new REST({ version: '9' }).setToken(token);
 client.on("ready", () => {
 
     // Check if the table "points" exists.
-    const levelTable = sql.prepare("SELECT count(*) FROM sqlite_master WHERE type='table' AND name = 'levels';").get();
+    const levelTable = db.prepare("SELECT count(*) FROM db_master WHERE type='table' AND name = 'levels';").get();
     if (!levelTable['count(*)']) {
-        sql.prepare("CREATE TABLE levels (id TEXT PRIMARY KEY, user TEXT, guild TEXT, xp INTEGER, level INTEGER, totalXP INTEGER);").run();
+        db.prepare("CREATE TABLE levels (id TEXT PRIMARY KEY, user TEXT, guild TEXT, xp INTEGER, level INTEGER, totalXP INTEGER);").run();
     }
 
-    client.getLevel = sql.prepare("SELECT * FROM levels WHERE user = ? AND guild = ?");
-    client.setLevel = sql.prepare("INSERT OR REPLACE INTO levels (id, user, guild, xp, level, totalXP) VALUES (?, ?, ?, ?, ?, ?);");
+    client.getLevel = db.prepare("SELECT * FROM levels WHERE user = ? AND guild = ?");
+    client.setLevel = db.prepare("INSERT OR REPLACE INTO levels (id, user, guild, xp, level, totalXP) VALUES (?, ?, ?, ?, ?, ?);");
 
     // Check if the table "backgrounds" exists.
-    const bgTable = sql.prepare("SELECT count(*) FROM sqlite_master WHERE type='table' AND name = 'background';").get();
+    const bgTable = db.prepare("SELECT count(*) FROM sqlite_master WHERE type='table' AND name = 'background';").get();
     if (!bgTable['count(*)']) {
-        sql.prepare("CREATE TABLE background (user TEXT, guild TEXT, bg TEXT)").run();
+        db.prepare("CREATE TABLE background (user TEXT, guild TEXT, bg TEXT)").run();
     }
 
-    client.getBg = sql.prepare("SELECT bg FROM background WHERE user = ? AND guild = ?;");
-    client.setBg = sql.prepare("INSERT OR REPLACE INTO background (user, guild, bg) VALUES (@user, @guild, @bg);");
+    client.getBg = db.prepare("SELECT bg FROM background WHERE user = ? AND guild = ?;");
+    client.setBg = db.prepare("INSERT OR REPLACE INTO background (user, guild, bg) VALUES (@user, @guild, @bg);");
 
     // Role table for levels
-    const roleTable = sql.prepare("SELECT count(*) FROM sqlite_master WHERE type='table' AND name = 'roles';").get();
+    const roleTable = db.prepare("SELECT count(*) FROM sqlite_master WHERE type='table' AND name = 'roles';").get();
     if (!roleTable['count(*)']) {
-        sql.prepare("CREATE TABLE roles (guildID TEXT, roleID TEXT, level INTEGER);").run();
+        db.prepare("CREATE TABLE roles (guildID TEXT, roleID TEXT, level INTEGER);").run();
     }
 
     // Prefix table
-    const prefixTable = sql.prepare("SELECT count(*) FROM sqlite_master WHERE type='table' AND name = 'prefix';").get();
+    const prefixTable = db.prepare("SELECT count(*) FROM sqlite_master WHERE type='table' AND name = 'prefix';").get();
     if (!prefixTable['count(*)']) {
-        sql.prepare("CREATE TABLE prefix (serverprefix TEXT, guild TEXT PRIMARY KEY);").run();
+        db.prepare("CREATE TABLE prefix (serverprefix TEXT, guild TEXT PRIMARY KEY);").run();
     }
 
     // Blacklist table
-    const blacklistTable = sql.prepare("SELECT count(*) FROM sqlite_master WHERE type='table' AND name = 'blacklistTable';").get();
+    const blacklistTable = db.prepare("SELECT count(*) FROM sqlite_master WHERE type='table' AND name = 'blacklistTable';").get();
     if (!blacklistTable['count(*)']) {
-        sql.prepare("CREATE TABLE blacklistTable (guild TEXT, typeId TEXT, type TEXT, id TEXT PRIMARY KEY);").run();
+        db.prepare("CREATE TABLE blacklistTable (guild TEXT, typeId TEXT, type TEXT, id TEXT PRIMARY KEY);").run();
     }
 
     // 2X XP table
-    const doubleXPTable = sql.prepare("SELECT count(*) FROM sqlite_master WHERE type='table' AND name = 'doubleXP';").get();
+    const doubleXPTable = db.prepare("SELECT count(*) FROM sqlite_master WHERE type='table' AND name = 'doubleXP';").get();
     if (!doubleXPTable['count(*)']) {
-        sql.prepare("CREATE TABLE doubleXP (guild TEXT, role TEXT);").run();
+        db.prepare("CREATE TABLE doubleXP (guild TEXT, role TEXT);").run();
     }
 
     // Settings table
-    const settingsTable = sql.prepare("SELECT count(*) FROM sqlite_master WHERE type='table' AND name = 'settings';").get();
+    const settingsTable = db.prepare("SELECT count(*) FROM sqlite_master WHERE type='table' AND name = 'settings';").get();
     if (!settingsTable['count(*)']) {
-        sql.prepare("CREATE TABLE settings (guild TEXT PRIMARY KEY, levelUpMessage TEXT, customXP INTEGER, customCooldown INTEGER);").run();
+        db.prepare("CREATE TABLE settings (guild TEXT PRIMARY KEY, levelUpMessage TEXT, customXP INTEGER, customCooldown INTEGER);").run();
     }
 
     const channelTable = sql.prepare("SELECT count(*) FROM sqlite_master WHERE type='table' AND name = 'channel';").get();
     if (!channelTable['count(*)']) {
-        sql.prepare("CREATE TABLE channel (guild TEXT PRIMARY KEY, channel TEXT);").run();
+        db.prepare("CREATE TABLE channel (guild TEXT PRIMARY KEY, channel TEXT);").run();
     }
 
     console.log(`Logged in as ${client.user.username}`)
@@ -130,26 +130,26 @@ client.on("messageCreate", message => {
     if (!message.guild) return;
 
     // 2X XP table
-    const doubleXPTable = sql.prepare("SELECT role FROM 'doubleXP' WHERE guild = " + message.guild.id).get();      ;
+    const doubleXPTable = db.prepare("SELECT role FROM 'doubleXP' WHERE guild = " + message.guild.id).get();      ;
     if (typeof doubleXPTable != "undefined" && typeof doubleXPTable.role != "undefined" && message.member.roles.cache.has(doubleXPTable['role'])) {
         var xpMulti = 2;
     }  else {
         var xpMulti = 1;
     }
 
-    let blacklist = sql.prepare(`SELECT id FROM blacklistTable WHERE id = ?`);
+    let blacklist = db.prepare(`SELECT id FROM blacklistTable WHERE id = ?`);
     if (blacklist.get(`${message.guild.id}-${message.author.id}`) || blacklist.get(`${message.guild.id}-${message.channel.id}`)) return;
 
     // get level and set level
     const level = client.getLevel.get(message.author.id, message.guild.id)
     if (!level) {
-        let insertLevel = sql.prepare("INSERT OR REPLACE INTO levels (id, user, guild, xp, level, totalXP) VALUES (?,?,?,?,?,?);");
+        let insertLevel = db.prepare("INSERT OR REPLACE INTO levels (id, user, guild, xp, level, totalXP) VALUES (?,?,?,?,?,?);");
         insertLevel.run(`${message.author.id}-${message.guild.id}`, message.author.id, message.guild.id, 0, 0, 0)
         return;
     }
 
-    let customSettings = sql.prepare("SELECT * FROM settings WHERE guild = ?").get(message.guild.id);
-    let channelLevel = sql.prepare("SELECT * FROM channel WHERE guild = ?").get(message.guild.id);
+    let customSettings = db.prepare("SELECT * FROM settings WHERE guild = ?").get(message.guild.id);
+    let channelLevel = db.prepare("SELECT * FROM channel WHERE guild = ?").get(message.guild.id);
 
     const lvl = level.level;
 
@@ -224,7 +224,7 @@ client.on("messageCreate", message => {
 
     // level up, time to add level roles
     const member = message.member;
-    let Roles = sql.prepare("SELECT * FROM roles WHERE guildID = ? AND level = ?")
+    let Roles = db.prepare("SELECT * FROM roles WHERE guildID = ? AND level = ?")
 
     let roles = Roles.get(message.guild.id, lvl)
     if (!roles) return;
